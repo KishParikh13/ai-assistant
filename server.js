@@ -2,8 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Configuration, OpenAIApi } = require("openai");
+
 const app = express();
 const port = process.env.PORT || 8080;
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const { google } = require('googleapis');
 const { OAuth2 } = google.auth;
@@ -14,27 +18,37 @@ const oAuth2Client = new OAuth2(
 oAuth2Client.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
 const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
-app.get('/api/calendar/list', async (req, res) => {
-  calendar.events.list({
-    calendarId: 'primary',
-    timeMin: (new Date()).toISOString(),
-    maxResults: 10,
-    singleEvents: true,
-    orderBy: 'startTime',
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ', err);
-    const events = res.data.items;
-    if (events.length) {
-      console.log('Upcoming 10 events:');
-      events.map((event, i) => {
-        const start = event.start.dateTime || event.start.date;
-        console.log(`${start} - ${event.summary}`);
-      });
-    } else {
-      console.log('No upcoming events found.');
-    }
-  });
+app.get('/api/calendar/apikey', async (req, res) => {
+  res.send(process.env.GOOGLE_API_TOKEN)
 });
+
+// app.get('/api/calendar/list/:count', async (req, res) => {
+//   var numResults = req.params.count;
+
+//   let allEvents = [];
+
+//   // for (let i = 0; i < calendarIds.length; i++) {
+//     // Call the calendar api to retrieve the events from the calendar.
+//     // console.log("loading calendar " + (i+1) + ": " + calendarIds[i])
+//     calendar.events.list({
+//       calendarId: 'primary', // calendarIds[i],
+//       timeMin: (new Date()).toISOString(),
+//       maxResults: numResults,
+//       singleEvents: true,
+//       orderBy: 'startTime',
+//     }, (err, response) => {
+//       if (err) return console.log('The API returned an error: ', err);
+//       const events = response.data.items;
+//       if (events.length) {
+//         allEvents = allEvents.concat(events);
+//         res.send(events)
+//       } else {
+//         console.log('No upcoming events found.');
+//       }
+//     });
+//   // }
+
+// });
 
 app.get('/api/calendar/insert', async (req, res) => {
 
@@ -125,7 +139,7 @@ app.post('/api/completion', async (req, res) => {
 
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
-  // handle errors if openai fails
+
   try {
     const response = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
@@ -137,9 +151,6 @@ app.post('/api/chat', async (req, res) => {
     console.log(error.message);
   }
 });
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
