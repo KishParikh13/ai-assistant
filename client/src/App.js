@@ -16,14 +16,35 @@ function App() {
   };
 
   const [newMessage, setNewMessage] = useState('');
-  const [messages, setMessages] = useState([
-    {"role": "system", "content": "You are a helpful assistant."},
-  ]);
+  let systemMessage = {
+    "role": "system",
+    "content": `
+    You are my calendar assistant.
+    You interpret my natural language statements
+    and create calendar events based on that.
+    If I don't specify a date, assume it's today.
+    If I don't provide a location, assume there is none.
+    Only respond in the following JSON format, no extra quotes or conversational prose:
+    {
+      summary: "Test meeting",
+      location: "3595 California St, San Francisco, CA 94118",
+      description: "Meet with David to talk about the new client project and how to integrate the calendar for booking.",
+      colorId: 1,
+      start: {
+        dateTime: eventStartTime,
+        timeZone: 'America/California',
+      },
+      end: {
+        dateTime: eventEndTime,
+        timeZone: 'America/California',
+      },
+    }
+    `
+  }
+  const [messages, setMessages] = useState([systemMessage]);
 
   const clearChat = () => {
-    setMessages([
-      {"role": "system", "content": "You are a helpful assistant."},
-    ]);
+    setMessages([systemMessage]);
     // update session storage
     sessionStorage.clear('messages', JSON.stringify(messages))
   }
@@ -55,7 +76,7 @@ function App() {
 
 
   return (
-    <div className=' min-h-screen p-8 grid grid-cols-3 gap-8'>
+    <div className=' min-h-screen p-8 grid lg:grid-cols-3 gap-8'>
       <section className=' col-span-2 flex flex-col '>
         <div className='flex justify-between items-start'>
         <div>
@@ -76,7 +97,7 @@ function App() {
             {
               messages.map((message, index) => {
                 return (
-                  <p className='mb-2' key={index}><span style={{backgroundColor: (message.role === "user" ? "yellow" : "lightGreen")}}>{message.role}</span>: {message.content}</p>
+                  <p className='mb-2 whitespace-pre-wrap' key={index}><span style={{backgroundColor: (message.role === "user" ? "yellow" : "lightGreen")}}>{message.role}</span>: {message.content}</p>
                 );
               })
             }
@@ -90,7 +111,7 @@ function App() {
           </form>
         </div>
       </section>
-      <section className='bg-slate-100 p-4 col-span-1'>
+      <section className='bg-slate-100 p-4 lg:block hidden col-span-1 max-h-[90vh] sticky top-8'>
         <Calendar />
       </section>
 
