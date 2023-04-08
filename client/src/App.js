@@ -16,38 +16,74 @@ function App() {
   };
 
   const [newMessage, setNewMessage] = useState('');
-  let systemMessage = {
-    "role": "system",
-    "content": `
-    You are my calendar assistant.
-    You interpret my natural language statements
-    and create calendar events based on that.
-    If I don't specify a date, assume it's today.
-    If I don't provide a location, assume there is none.
-    Only respond in the following JSON format, no extra quotes or conversational prose:
-    {
-      summary: "Test meeting",
-      location: "3595 California St, San Francisco, CA 94118",
-      description: "Meet with David to talk about the new client project and how to integrate the calendar for booking.",
-      colorId: 1,
-      start: {
-        dateTime: eventStartTime,
-        timeZone: 'America/California',
-      },
-      end: {
-        dateTime: eventEndTime,
-        timeZone: 'America/California',
-      },
-    }
-    `
-  }
-  const [messages, setMessages] = useState([systemMessage]);
+  let systemMessages = [
+{
+"role": "system",
+"content": `You are my calendar assistant.
+You interpret my natural language statements
+and manage my calendar events based on that.
+You only respond in JSON.
+`
+},
+{
+"role": "user",
+"content": `If I ask you something that does not require an action,
+respond in the folllowing JSON format:
+{
+  "content": "I'm sorry, I don't understand."
+}`
+},
+{
+"role": "user",
+"content": `If I ask you to create an event,
+format the start and end times in ISO 8601 format,
+choose a type from the following list: Work, Personal, Projects, or Volunteering,
+and respond in the following JSON format:
+{
+  "startTime": "4pm on April 8th 2023",
+  "endTime": "5pm on April 8th 2023",
+  "summary": "Test meeting",
+  "location": "3595 California St, San Francisco, CA 94118",
+  "description": "Meet with David to talk about the new client project and how to integrate the calendar for booking.",
+  type: "Work",
+}`
+},
+{
+"role": "user",
+"content": `Only reply in JSON,
+your responses should ONLY start with an opening curly bracket
+and end with a closing curly bracket, no extra quotes or conversational text.`
+}
+]
+
+  const [messages, setMessages] = useState(systemMessages);
 
   const clearChat = () => {
-    setMessages([systemMessage]);
+    setMessages(systemMessages);
     // update session storage
     sessionStorage.clear('messages', JSON.stringify(messages))
   }
+
+  const handleIncomingChatMessage = (message) => {
+    console.log(message)
+    let jsonMessage = {}
+    try {
+      jsonMessage = JSON.parse(message);
+    } catch(e) {
+      jsonMessage = {
+        content: message
+      }
+    }
+    if (jsonMessage.content) {
+      message = jsonMessage.content
+    } else if (jsonMessage.summary) {
+      message = "Succesfully created the following event: " + jsonMessage.summary
+    } else {
+      message = "I'm sorry, I don't understand. Try again with more specific command"
+    }
+    return message
+  }
+
 
   const getChat = async (e) => {
     e.preventDefault();
@@ -56,7 +92,8 @@ function App() {
     setNewMessage('');
     try {
       const response = await axios.post('/api/chat', { messages: newMessages });
-      let allMessages = [...newMessages, { role: 'assistant', content: response.data.result.content }]
+      let incomingMessage = handleIncomingChatMessage(response.data.result.content)
+      let allMessages = [...newMessages, { role: 'assistant', content: incomingMessage }]
 
       // save messages to session storage
       setMessages(allMessages);
@@ -95,7 +132,7 @@ function App() {
           <p className='font-bold text-md mb-4'>{new Date().toLocaleString()}</p>
           <div className=' '>
             {
-              messages.map((message, index) => {
+              messages.filter((message, index) => index > (systemMessages.length-1)).map((message, index) => {
                 return (
                   <p className='mb-2 whitespace-pre-wrap' key={index}><span style={{backgroundColor: (message.role === "user" ? "yellow" : "lightGreen")}}>{message.role}</span>: {message.content}</p>
                 );
@@ -112,7 +149,7 @@ function App() {
         </div>
       </section>
       <section className='bg-slate-100 p-4 lg:block hidden col-span-1 max-h-[90vh] sticky top-8'>
-        <Calendar />
+        {/* <Calendar /> */}
       </section>
 
       
