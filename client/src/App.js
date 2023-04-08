@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import Calendar from './Calendar';
 
@@ -20,6 +20,14 @@ function App() {
     {"role": "system", "content": "You are a helpful assistant."},
   ]);
 
+  const clearChat = () => {
+    setMessages([
+      {"role": "system", "content": "You are a helpful assistant."},
+    ]);
+    // update session storage
+    sessionStorage.clear('messages', JSON.stringify(messages))
+  }
+
   const getChat = async (e) => {
     e.preventDefault();
     let newMessages = [...messages, { role: 'user', content: newMessage }]
@@ -27,22 +35,40 @@ function App() {
     setNewMessage('');
     try {
       const response = await axios.post('/api/chat', { messages: newMessages });
-      setMessages([...newMessages, { role: 'assistant', content: response.data.result.content }]);
+      let allMessages = [...newMessages, { role: 'assistant', content: response.data.result.content }]
+
+      // save messages to session storage
+      setMessages(allMessages);
+      sessionStorage.setItem('messages', JSON.stringify(allMessages));
     } catch (error) {
       console.log(error);
     }
   };
 
-  const [calendar, setCalendar] = useState([]);
-  const loadCalendar = async () => {
-    console.log(process.env.REACT_APP_GOOGLE_API_KEY)
-  };
+  useEffect(() => {
+    // load messages from session storage
+    const messages = sessionStorage.getItem('messages');
+    if (messages) {
+      setMessages(JSON.parse(messages));
+    }
+  }, []);
+
 
   return (
     <div className=' min-h-screen p-8 grid grid-cols-3 gap-8'>
       <section className=' col-span-2 flex flex-col '>
-        <h1  className='font-bold text-2xl mb-2'>AI Calendar Chat App</h1>
-        <p className=' mb-8  text-sm '>Use the OpenAI API to chat with an AI assistant.</p>
+        <div className='flex justify-between items-start'>
+        <div>
+          <h1  className='font-bold text-2xl mb-2'>AI Calendar Chat App</h1>
+          <p className=' mb-8  text-sm '>Use the OpenAI API to chat with an AI assistant.</p>
+
+        </div>
+        {/*  clear chat button */}
+        <button className='px-4 py-2 rounded-md bg-gray-600 text-white' onClick={() => clearChat()}>
+          Clear Chat
+        </button>
+
+        </div>
         
         <div className=''>
           <p className='font-bold text-md mb-4'>{new Date().toLocaleString()}</p>
@@ -65,7 +91,7 @@ function App() {
         </div>
       </section>
       <section className='bg-slate-100 p-4 col-span-1'>
-        <Calendar events={calendar} />
+        <Calendar />
       </section>
 
       
