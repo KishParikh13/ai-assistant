@@ -113,8 +113,8 @@ and end with a closing curly bracket, no extra quotes or conversational text.`
 
 
   return (
-    <div className=' min-h-screen p-8 grid lg:grid-cols-3 gap-8'>
-      <section className=' col-span-2 flex flex-col '>
+    <div className=' min-h-screen p-8 grid lg:grid-cols-1 gap-8'>
+      <section className=' flex flex-col '>
         <div className='flex justify-between items-start'>
         <div>
           <h1  className='font-bold text-2xl mb-2'>AI Calendar Chat App</h1>
@@ -148,7 +148,7 @@ and end with a closing curly bracket, no extra quotes or conversational text.`
           </form>
         </div>
       </section>
-      <section className='bg-slate-100 p-4 lg:block hidden col-span-1 max-h-[90vh] sticky top-8'>
+      <section className=' bg-slate-100 p-4 hidden col-span-1 max-h-[90vh] sticky top-8'>
         {/* <Calendar /> */}
       </section>
 
