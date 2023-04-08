@@ -22,34 +22,6 @@ app.get('/api/calendar/apikey', async (req, res) => {
   res.send(process.env.GOOGLE_API_TOKEN)
 });
 
-// app.get('/api/calendar/list/:count', async (req, res) => {
-//   var numResults = req.params.count;
-
-//   let allEvents = [];
-
-//   // for (let i = 0; i < calendarIds.length; i++) {
-//     // Call the calendar api to retrieve the events from the calendar.
-//     // console.log("loading calendar " + (i+1) + ": " + calendarIds[i])
-//     calendar.events.list({
-//       calendarId: 'primary', // calendarIds[i],
-//       timeMin: (new Date()).toISOString(),
-//       maxResults: numResults,
-//       singleEvents: true,
-//       orderBy: 'startTime',
-//     }, (err, response) => {
-//       if (err) return console.log('The API returned an error: ', err);
-//       const events = response.data.items;
-//       if (events.length) {
-//         allEvents = allEvents.concat(events);
-//         res.send(events)
-//       } else {
-//         console.log('No upcoming events found.');
-//       }
-//     });
-//   // }
-
-// });
-
 app.get('/api/calendar/insert', async (req, res) => {
 
     // Create a new event start date instance for temp uses in our calendar.
