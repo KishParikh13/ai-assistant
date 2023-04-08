@@ -2,23 +2,102 @@ require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Configuration, OpenAIApi } = require("openai");
-
 const app = express();
 const port = process.env.PORT || 8080;
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+const { google } = require('googleapis');
+const { OAuth2 } = google.auth;
+const oAuth2Client = new OAuth2(
+  process.env.CLIENT_ID,
+  process.env.CLIENT_SECRET
+);
+oAuth2Client.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
+const calendar = google.calendar({ version: 'v3', auth: oAuth2Client });
 
-const credentials = require('./credentials.json');
-// const calendar = google.calendar({
-//   version: 'v3',
-//   auth: new google.auth.JWT(
-//     credentials.client_email,
-//     null,
-//     credentials.private_key,
-//     ['https://www.googleapis.com/auth/calendar']
-//   )
-// });
+app.get('/api/calendar/list', async (req, res) => {
+  calendar.events.list({
+    calendarId: 'primary',
+    timeMin: (new Date()).toISOString(),
+    maxResults: 10,
+    singleEvents: true,
+    orderBy: 'startTime',
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ', err);
+    const events = res.data.items;
+    if (events.length) {
+      console.log('Upcoming 10 events:');
+      events.map((event, i) => {
+        const start = event.start.dateTime || event.start.date;
+        console.log(`${start} - ${event.summary}`);
+      });
+    } else {
+      console.log('No upcoming events found.');
+    }
+  });
+});
+
+app.get('/api/calendar/insert', async (req, res) => {
+
+    // Create a new event start date instance for temp uses in our calendar.
+  const eventStartTime = new Date()
+  eventStartTime.setDate(eventStartTime.getDay() + 2)
+  
+  // Create a new event end date instance for temp uses in our calendar.
+  const eventEndTime = new Date()
+  eventEndTime.setDate(eventEndTime.getDay() + 1)
+  eventEndTime.setMinutes(eventEndTime.getMinutes() + 45)
+  
+  // Create a dummy event for temp uses in our calendar
+  const event = {
+    summary: `Test meeting`,
+    location: `3595 California St, San Francisco, CA 94118`,
+    description: `Meet with David to talk about the new client project and how to integrate the calendar for booking.`,
+    colorId: 1,
+    start: {
+      dateTime: eventStartTime,
+      timeZone: 'America/California',
+    },
+    end: {
+      dateTime: eventEndTime,
+      timeZone: 'America/California',
+    },
+  }
+  
+  // Check if we a busy and have an event on our calendar for the same time.
+  calendar.freebusy.query(
+    {
+      resource: {
+        timeMin: eventStartTime,
+        timeMax: eventEndTime,
+        timeZone: 'America/California',
+        items: [{ id: 'primary' }],
+      },
+    },
+    (err, res) => {
+      // Check for errors in our query and log them if they exist.
+      if (err) return console.error('Free Busy Query Error: ', err)
+  
+      // Create an array of all events on our calendar during that time.
+      const eventArr = res.data.calendars.primary.busy
+  
+      // Check if event array is empty which means we are not busy
+      if (eventArr.length === 0)
+        // If we are not busy create a new calendar event.
+        return calendar.events.insert(
+          { calendarId: 'primary', resource: event },
+          err => {
+            // Check for errors and log them if they exist.
+            if (err) return console.error('Error Creating Calender Event:', err)
+            // Else log that the event was created.
+            return console.log('Calendar event successfully created.')
+          }
+        )
+  
+      // If event array is not empty log that we are busy.
+      return console.log(`Sorry I'm busy...`)
+    }
+  )
+});
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -58,6 +137,9 @@ app.post('/api/chat', async (req, res) => {
     console.log(error.message);
   }
 });
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
